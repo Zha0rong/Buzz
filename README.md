@@ -25,9 +25,9 @@ The full results of clustering are shown in the html file in the Repository. The
 For now only output from Baysor<sup>[4](https://github.com/kharchenkolab/Baysor)</sup> are accepted.
 User needs to provide:
   1. files from Baysor output (all gzipped):
-   1. segmentation.csv
-   2. segmentation_cell_stats.csv
-   3. segmentation_counts.tsv
+   segmentation.csv
+   segmentation_cell_stats.csv
+   segmentation_counts.tsv
   2. one comma-delimited file named as 'cell_assignment.csv.gz'. The file should only contain two columns: the first one is the cell name (in agreement with the cell name from Baysor) and the second column is the cell identity assigned to each cell (it does not have to be cell types, it can be clusters).
 
 
