@@ -25,6 +25,7 @@ The full results of clustering are shown in the html file in the Repository. The
 For now only output from Baysor<sup>[4](https://github.com/kharchenkolab/Baysor)</sup> are accepted.
 User needs to provide:
   1. files from Baysor output (all gzipped):
+   
    segmentation.csv
    
    segmentation_cell_stats.csv
