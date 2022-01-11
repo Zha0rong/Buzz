@@ -2,7 +2,7 @@
 
 ## What is MERFISHer?
 
-MERFISH is a Spatial Transcriptome capturing technology [1](https://www.pnas.org/content/113/50/14456).
+MERFISH is a Spatial Transcriptome capturing technology <sup>[1](https://www.pnas.org/content/113/50/14456)</sup>.
 
 
 
