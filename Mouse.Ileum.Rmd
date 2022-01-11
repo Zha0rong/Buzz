@@ -1,0 +1,381 @@
+---
+title: "Mouse Ileum Analysis"
+author: "Zhaorong Li"
+date: "Jan/11/2022"
+output: 
+  
+  html_document:
+    toc: true
+    toc_float:
+      toc_collapsed: true
+      toc_depth: 4
+    number_sections: true
+    fig_caption: yes
+    theme: cerulean
+editor_options: 
+  chunk_output_type: console
+params:
+  TF: ''
+---
+
+
+```{r setup, include=FALSE}
+library(Seurat)
+library(tidyr)
+library(reshape2)
+library(reactable)
+library(RColorBrewer)
+library(psych)
+library(gridExtra)
+```
+
+# MERFISH Image visualization
+
+This dataset [1] is downloaded from https://zenodo.org/record/5512749#.Yd3H0dHMKUl. The Baysor Cell segmentation and the author generated cell type assignment are used in the analysis.
+
+
+
+## Plot Cell by centroid Coordinates
+```{r Plot Cell by centroid Coordinates, fig.width=10,fig.height=10}
+
+Spacial.information=read.csv('segmentation.csv.gz',header = T)
+
+Spacial.information=Spacial.information[Spacial.information$is_noise!='true',]
+Spacial.information$cell=as.character(Spacial.information$cell)
+Cell_spacial_information=read.csv('segmentation_cell_stats.csv.gz',header = T,row.names = 1)
+
+Celltype=read.csv('cell_assignment.csv.gz',header = T,row.names = 1)
+colnames(Celltype)=c('Celltype')
+
+Cell_spacial_information=merge(Cell_spacial_information,Celltype,by = 0)
+colnames(Cell_spacial_information)=paste0('cell_',colnames(Cell_spacial_information))
+
+colnames(Cell_spacial_information)[1]='cell'
+
+Cell_spacial_information=Cell_spacial_information[Cell_spacial_information$cell_Celltype!='Removed',]
+getPalette = colorRampPalette(brewer.pal(9, "Dark2"))
+
+
+color=getPalette(length(unique(Cell_spacial_information$cell_Celltype)))
+
+ggplot(Cell_spacial_information,aes(x=cell_x,y=cell_y,colour=cell_Celltype))+geom_point()+
+  xlim(min(Cell_spacial_information$cell_x),max(Cell_spacial_information$cell_x))+
+  ylim(min(Cell_spacial_information$cell_y),max(Cell_spacial_information$cell_y)) + scale_color_manual(values = color)+ theme_bw() + 
+  theme(
+    # get rid of panel grids
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # Change plot and panel background
+    plot.background=element_rect(fill = "black"),
+    panel.background = element_rect(fill = 'black'),
+    # Change legend 
+    #legend.position = c(0.6, 0.07),
+    #legend.direction = "horizontal",
+    legend.background = element_rect(fill = "black", color = NA),
+    legend.key = element_rect(color = "gray", fill = "black"),
+    legend.title = element_text(color = "white"),
+    legend.text = element_text(color = "white")
+  )
+
+```
+
+## Plot Cell by real probes.
+```{r Plot Cell by real probes, fig.width=10,fig.height=10}
+
+Spacial.information=Spacial.information[Spacial.information$cell%in%rownames(Cell_spacial_information),]
+
+Spacial.information=merge(Spacial.information,Cell_spacial_information,by = 'cell')
+
+colnames(Spacial.information)[grepl('Celltype',colnames(Spacial.information))]='Celltype'
+
+
+ggplot(Spacial.information,aes(x=x,y=y,colour=Celltype))+geom_point(shape='.')+
+  xlim(min(Spacial.information$x),max(Spacial.information$x))+
+  ylim(min(Spacial.information$y),max(Spacial.information$y)) + scale_color_manual(values = color)+ theme_bw() + 
+  theme(
+    # get rid of panel grids
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # Change plot and panel background
+    plot.background=element_rect(fill = "black"),
+    panel.background = element_rect(fill = 'black'),
+    # Change legend 
+    #legend.position = c(0.6, 0.07),
+    #legend.direction = "horizontal",
+    legend.background = element_rect(fill = "black", color = NA),
+    legend.key = element_rect(color = "gray", fill = "black"),
+    legend.title = element_text(color = "white"),
+    legend.text = element_text(color = "white")
+  )
+
+```
+
+# Analysis
+
+By looking at the visualization results from Part 1, we can see that the cellular composition of different parts of the tissue are different.
+
+Can we use the unsupervised clustering algorithm to find different parts of the tissue?
+
+Time to find out.
+
+## Area Calculator Function
+
+This function will break the Image into multiple small fragments. and calculate the cell composition in each small fragments.
+
+    Logic:
+      The whole image is broken into small fragments.
+
+      for each small fragment:
+  
+        for each cell has overlap with the small fragment:
+      
+          if the cell has more than x% (x determined by the user) of cell's probes in the small fragment, the cell is determined to be in the small fragment.
+        Cell composition of the small fragment is determined by the cells assigned to it.
+      
+The percentage threshold and the size of small fragment can be determined by the user.
+
+
+```{r Area Cellular composition Calculator}
+area_calculator <- function (xmin, xmax, ymin, ymax, numbers,slide,proportion_threshold=0.25) {
+  xdelta=(xmax-xmin)/numbers
+  ydelta=(ymax-ymin)/numbers
+  slide=slide[slide$x>xmin&slide$x<xmax&slide$y>ymin&slide$y<ymax,]
+  cell.stats=data.frame(table(slide$cell))
+  xstart=xmin
+  results=data.frame(xy='')
+  for (i in unique(slide$Celltype)) {
+    results=cbind(results,data.frame(cellnum=0))
+    colnames(results)[ncol(results)]=i
+  }
+  while (xstart<xmax) {
+    xrange=c(xstart,xstart+xdelta)
+    ystart=ymin
+    while(ystart < ymax) {
+      yrange=c(ystart,ystart+ydelta)
+      portion=slide[slide$x>xrange[1]&slide$x<xrange[2]&slide$y>yrange[1]&slide$y<yrange[2],]
+      if (nrow(portion)!=0) {
+        temp=data.frame(xy=paste(c(xrange,yrange),collapse = ','))
+        for (i in unique(slide$Celltype)) {
+          temp=cbind(temp,data.frame(cellnum=0))
+          colnames(temp)[ncol(temp)]=i
+        }
+        for (i in unique(portion$Celltype)) {
+          cells=portion[portion$Celltype==i,]
+          prop.stats=data.frame(table(cells$cell))
+          table=merge(prop.stats,cell.stats[cell.stats$Var1%in%prop.stats$Var1,],by='Var1')
+          table$Freq=(table$Freq.x/table$Freq.y)
+          sum=length(table$Freq[table$Freq>proportion_threshold])
+          temp[1,i]=sum
+        }
+        
+        results=rbind(results,temp)
+      }
+      ystart=ystart+ydelta
+    }
+    xstart=xstart+xdelta
+    
+  }
+  results=results[-1,]
+  rownames(results)=results[,1]
+  results=results[,-1]
+  results=results[rowSums(results)>1,]
+  return(results)
+}
+```
+
+```{r Area determination and Calculation}
+Area.50.50=area_calculator(min(Spacial.information$x),
+                                 max(Spacial.information$x),
+                                 min(Spacial.information$y),
+                                 max(Spacial.information$y),
+                                 50,Spacial.information)
+
+
+
+
+
+reactable(Area.50.50)
+
+
+```
+
+## Normalization and Scaling
+
+The cell composition of each fragment is scaled by the total number of cells in the fragment. The scaled number is multiplied by 1,000,000 and then log transformed.
+
+Basically it is log transformed CPM normalized.
+
+```{r Normalization and Scaling}
+
+Area.50.50.normalized=Area.50.50/rowSums(Area.50.50)
+Area.50.50.normalized=Area.50.50.normalized*(1e6)
+Area.50.50.normalized=log(Area.50.50.normalized+1)
+
+
+```
+
+## Clustering
+
+In this case I used the Louvain Community Clustering Algorithm from igraph package to cluster the area.
+
+
+```{r clustering}
+
+
+
+correlationmatrix = cor(t(as.matrix(Area.50.50.normalized)))
+distancematrix <- cor2dist(correlationmatrix)
+
+distancematrix <- as.matrix(distancematrix)
+
+
+distancematrix[abs(correlationmatrix) < 0.5] = 0
+
+Graph <- graph.adjacency(distancematrix, mode = "undirected", weighted = TRUE, diag = TRUE)
+
+clusterlouvain <- cluster_louvain(Graph)
+
+Clustering.results=data.frame(cluster=clusterlouvain$membership,row.names = clusterlouvain$names)
+
+```
+
+## Visualization of Clustering Results
+
+```{r Visualization of Clustering Results, fig.width=20,fig.height=20}
+
+Area.Cluster.assignment=merge(Clustering.results,Area.50.50,by=0)
+rownames(Area.Cluster.assignment)=Area.Cluster.assignment[,1]
+Area.Cluster.assignment=Area.Cluster.assignment[,-1]
+
+Clustering.Distribution=data.frame(cluster=as.factor(Area.Cluster.assignment$cluster),area=rownames(Area.Cluster.assignment))
+Clustering.Distribution=separate(Clustering.Distribution,col=area,into=c('xmin','xmax','ymin','ymax'),sep = ',')
+Clustering.Distribution$xmin=as.numeric(Clustering.Distribution$xmin)
+Clustering.Distribution$xmax=as.numeric(Clustering.Distribution$xmax)
+
+Clustering.Distribution$ymin=as.numeric(Clustering.Distribution$ymin)
+
+Clustering.Distribution$ymax=as.numeric(Clustering.Distribution$ymax)
+
+
+Clustering.Distribution.plot=ggplot()+xlim(min(Spacial.information$x),max(Spacial.information$x))+
+  ylim(min(Spacial.information$y),max(Spacial.information$y))+
+  geom_rect(data=Clustering.Distribution,aes(xmin=xmin,xmax=xmax,
+                           ymin=ymin,ymax=ymax,
+                           fill=cluster),alpha=0.5)+
+  geom_text(data=Clustering.Distribution, aes(x=xmin+(xmax-xmin)/2, y=ymin+(ymax-ymin)/2, label=cluster), size=4)+ theme_bw() +xlab('x') +ylab('y') + 
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+  )
+
+
+melt=Area.Cluster.assignment
+melt$cluster=as.factor(melt$cluster)
+melt=melt(melt,id.vars='cluster')
+colnames(melt)=c('Cluster','CellType','Cells')
+Cluster_cell_composition=ggplot(melt,aes(x=Cells,y=Cluster,fill=CellType))+geom_bar(stat = 'identity',position = 'fill')+ scale_fill_manual(values = color)+ theme_bw()
+
+centroid.graph=ggplot(Cell_spacial_information,aes(x=cell_x,y=cell_y,colour=cell_Celltype))+geom_point()+
+  xlim(min(Cell_spacial_information$cell_x),max(Cell_spacial_information$cell_x))+
+  ylim(min(Cell_spacial_information$cell_y),max(Cell_spacial_information$cell_y)) + scale_color_manual(values = color)+ theme_bw() +xlab('x') +ylab('y') +
+  theme(legend.position = "none",
+    # get rid of panel grids
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # Change plot and panel background
+    # Change legend 
+    #legend.position = c(0.6, 0.07),
+    #legend.direction = "horizontal",
+)
+
+grid.arrange(Clustering.Distribution.plot, centroid.graph,Cluster_cell_composition, ncol=2)
+
+```
+
+## Explore the Transcriptome Based on the Area Clustering Results
+
+The Clustering algorithm separate the image into 4 clusters.
+
+Cluster 4 seems to be the outside lining of the Villi.
+
+So in this case I would love to compare the difference between the gene expression profile of Enterocytes (Mid Villus) in Area clusters 4 and the gene expression profile of Enterocytes (Mid Villus) in other Area clusters.
+
+```{r Assign Cells to Area Clusters}
+
+
+Cell_spacial_information$Area_Cluster=''
+
+for (i in 1:nrow(Cell_spacial_information)) {
+  start=1
+  stop=0
+  while(start<=nrow(Clustering.Distribution)&stop==0) {
+    if (Cell_spacial_information$cell_x[i]>Clustering.Distribution$xmin[start]&
+        Cell_spacial_information$cell_x[i]<Clustering.Distribution$xmax[start]&
+        Cell_spacial_information$cell_y[i]>Clustering.Distribution$ymin[start]&
+        Cell_spacial_information$cell_y[i]<Clustering.Distribution$ymax[start]) {
+      Cell_spacial_information$Area_Cluster[i]=Clustering.Distribution$cluster[start]
+      stop=1
+    }
+    else {
+      start=start+1
+    }
+  }
+  rm(i)
+}
+
+metadata=Cell_spacial_information
+# Remove the cells that are not in the any Area cluster.
+metadata=metadata[metadata$Area_Cluster!='',]
+
+rownames(metadata)=metadata$cell
+Counts=read.table('MERFISH/data_release_baysor_merfish_gut/data_analysis/baysor_membrane_prior/segmentation/segmentation_counts.tsv',header = F,row.names = 1,check.names = F)
+colnames(Counts)=seq(1,ncol(Counts))
+Counts=Counts[,rownames(metadata)]
+Seurat_Object=CreateSeuratObject(Counts,meta.data = metadata)
+
+
+reactable(AreaCluster.composition)
+
+Enterocyte=subset(Seurat_Object,subset=cell_Celltype%in%c('Enterocyte (Bottom Villus)'))
+Enterocyte=NormalizeData(Enterocyte)
+Idents(Enterocyte)='Area_Cluster'
+Enterocyte.Area.markers=FindMarkers(Enterocyte,ident.1 = '4',test.use = 'MAST')
+
+reactable(Enterocyte.Area.markers)
+
+write.table(Cell_spacial_information,'Cell_spacial_information.tsv',quote = F,sep = '\t',row.names = F)
+```
+
+The results show that the Apob and Slc51a are significantly upregulated in the Enterocyte in the outer linings of the villi, while gene Stmn1 is significantly downregulated.
+
+Gene Introduction:
+
+https://www.genecards.org/cgi-bin/carddisp.pl?gene=APOB
+
+https://www.genecards.org/cgi-bin/carddisp.pl?gene=SLC51A&keywords=Slc51a
+
+https://www.genecards.org/cgi-bin/carddisp.pl?gene=STMN1&keywords=Stmn1
+
+
+
+
+
+# Conclusion
+
+Coming soon.
+
+
+
+# Reference
+
+[1] Moffitt, Jeffrey, Xu, Rosalind, Kharchenko, Peter, Petukhov, Viktor, Cadinu, Paolo, Soldatov, Ruslan, & Khodosevich, Konstantin. (2021). MERFISH measurements in the mouse ileum [Data set]. https://doi.org/10.5061/dryad.jm63xsjb2
+
+
+
+
+
+
+
+
+
+
