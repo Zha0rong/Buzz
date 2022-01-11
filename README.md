@@ -34,6 +34,11 @@ User needs to provide:
    
   2. one comma-delimited file named as 'cell_assignment.csv.gz'. The file should only contain two columns: the first one is the cell name (in agreement with the cell name from Baysor) and the second column is the cell identity assigned to each cell (it does not have to be cell types, it can be clusters).
 
+### What is yet to be.
+
+Generalize the pipeline to fit other types of output (such as cellpose<sup>[5](https://www.nature.com/articles/s41592-020-01018-x)</sup>).
+
+Make a package out of it for better user experience.
 
 
 
@@ -45,3 +50,5 @@ User needs to provide:
 [3] Blondel, V. D., Guillaume, J. L., Lambiotte, R., & Lefebvre, E. (2008). Fast unfolding of communities in large networks. Journal of statistical mechanics: theory and experiment, 2008(10), P10008.
 
 [4] Petukhov V, Xu RJ, Soldatov RA, Cadinu P, Khodosevich K, Moffitt JR & Kharchenko PV. Cell segmentation in imaging-based spatial transcriptomics. Nat Biotechnol (2021). https://doi.org/10.1038/s41587-021-01044-w
+
+[5] Stringer, C., Wang, T., Michaelos, M., & Pachitariu, M. (2021). Cellpose: a generalist algorithm for cellular segmentation. Nature Methods, 18(1), 100-106.
