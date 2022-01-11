@@ -14,9 +14,23 @@ MERFISHer first breaks the whole image into small equalize size fragments. Then 
 
 The fragments are clustered using the Louvain Community Detection Algorithm<sup>[3](https://iopscience.iop.org/article/10.1088/1742-5468/2008/10/P10008/meta)</sup>.
 
-And the results of clustering are shown in the html file in the Repository and the figure below.
+The full results of clustering are shown in the html file in the Repository. The figure below shows that the algorithm can adequately capture the differences in cell compositions in different regions of the tissue.
 
 ![alt text](https://github.com/Zha0rong/MERFISHer/blob/main/pics/Visualization%20of%20Clustering%20Results-1.png "MERFish figure 2")
+
+## How to use it.
+
+### What is already here.
+
+For now only output from Baysor<sup>[4](https://github.com/kharchenkolab/Baysor)</sup> are accepted.
+User needs to provide:
+..1. files from Baysor output (all gzipped):
+...1. segmentation.csv
+...2. segmentation_cell_stats.csv
+...3. segmentation_counts.tsv
+..2. one comma-delimited file named as 'cell_assignment.csv.gz'. The file should only contain two columns: the first one is the cell name (in agreement with the cell name from Baysor) and the second column is the cell identity assigned to each cell (it does not have to be cell types, it can be clusters).
+
+
 
 
 ## Citation
@@ -25,3 +39,5 @@ And the results of clustering are shown in the html file in the Repository and t
 [2] Moffitt, Jeffrey, Xu, Rosalind, Kharchenko, Peter, Petukhov, Viktor, Cadinu, Paolo, Soldatov, Ruslan, & Khodosevich, Konstantin. (2021). MERFISH measurements in the mouse ileum [Data set]. https://doi.org/10.5061/dryad.jm63xsjb2
 
 [3] Blondel, V. D., Guillaume, J. L., Lambiotte, R., & Lefebvre, E. (2008). Fast unfolding of communities in large networks. Journal of statistical mechanics: theory and experiment, 2008(10), P10008.
+
+[4] Petukhov V, Xu RJ, Soldatov RA, Cadinu P, Khodosevich K, Moffitt JR & Kharchenko PV. Cell segmentation in imaging-based spatial transcriptomics. Nat Biotechnol (2021). https://doi.org/10.1038/s41587-021-01044-w
