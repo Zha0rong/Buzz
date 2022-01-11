@@ -6,7 +6,7 @@ MERFISH is a Spatial Single Cell Transcriptome capturing technology<sup>[1](http
 
 ![alt text](https://github.com/Zha0rong/MERFISHer/blob/main/pics/Plot%20Cell%20by%20real%20probes-1.png "MERFish figure 1")
 
-This dataset is generated from a piece of Mouse Ileum. Just by looking at the figure above you will notice that in different places of the tissue the cellular compositions are different.
+This dataset is generated from a piece of Mouse Ileum. Just by looking at the figure above you will notice that in different places of the tissue the cellular compositions are different. MERFISHer is an un-biased clustering approach to 'fish out' regions with different cellular composition which may potentially be biologically meaningful.
 
 
 ## Citation
