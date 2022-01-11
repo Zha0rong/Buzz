@@ -2,10 +2,11 @@
 
 ## What is MERFISHer?
 
-MERFISH is a Spatial Single Cell Transcriptome capturing technology<sup>[1](https://www.pnas.org/content/113/50/14456)</sup>. It not only generates the single cell transcriptome like other single cell technology (not exactly but anyway), but also generates the locations of every cell and every transcript. The figure below is from the analysis results of one of the dataset publically available online<sup>[2](https://zenodo.org/record/5512749#.Yd2eHdHMKUk)</sup>.
+MERFISH is a Spatial Single Cell Transcriptome capturing technology<sup>[1](https://www.pnas.org/content/113/50/14456)</sup>. It not only generates the single cell transcriptome like other single cell technology (not exactly but anyway), but also generates the locations of every cell and every transcript. The figure below, which shows the results from the MERFISH dataset, is from the analysis results of one of the dataset publically available online<sup>[2](https://zenodo.org/record/5512749#.Yd2eHdHMKUk)</sup>.
 
 ![alt text](https://github.com/Zha0rong/MERFISHer/blob/main/pics/Plot%20Cell%20by%20real%20probes-1.png "MERFish figure 1")
 
+This dataset is generated from a piece of Mouse Ileum. Just by looking at the figure above you will notice that in different places of the tissue the cellular compositions are different.
 
 
 ## Citation
