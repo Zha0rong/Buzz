@@ -323,6 +323,8 @@ for (i in 1:nrow(Cell_spacial_information)) {
   rm(i)
 }
 
+write.table(Cell_spacial_information,'Cell_spacial_information.tsv',quote = F,sep = '\t',row.names = F)
+
 metadata=Cell_spacial_information
 # Remove the cells that are not in the any Area cluster.
 metadata=metadata[metadata$Area_Cluster!='',]
@@ -343,7 +345,6 @@ Enterocyte.Area.markers=FindMarkers(Enterocyte,ident.1 = '4',test.use = 'MAST')
 
 reactable(Enterocyte.Area.markers)
 
-write.table(Cell_spacial_information,'Cell_spacial_information.tsv',quote = F,sep = '\t',row.names = F)
 ```
 
 The results show that the Apob and Slc51a are significantly upregulated in the Enterocyte in the outer linings of the villi, while gene Stmn1 is significantly downregulated.
