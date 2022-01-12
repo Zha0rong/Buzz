@@ -1,6 +1,12 @@
-# MERFISHer
+# Buzz
 
-## What is MERFISHer?
+## What is Buzz?
+
+Buzz is a pipeline that can be used to find different regions of biological interest by cellular composition in Spatial Transcriptome dataset.
+
+For now it only support MERFISH.
+
+## What is MERFISH?
 
 MERFISH is a Spatial Single Cell Transcriptome capturing technology<sup>[1](https://www.pnas.org/content/113/50/14456)</sup>. It not only generates the single cell transcriptome like other single cell technology (not exactly but anyway), but also generates the locations of every cell and every transcript. The figure below, which shows the results from the MERFISH dataset, is from the analysis results of one of the dataset publically available online<sup>[2](https://zenodo.org/record/5512749#.Yd2eHdHMKUk)</sup>.
 
@@ -10,7 +16,7 @@ This dataset is generated from a piece of Mouse Ileum. Just by looking at the fi
 
 ## Method
 
-MERFISHer first breaks the whole image into small equalize size fragments. Then the cell composition of each fragment is calculated.
+Buzz first breaks the whole image into small equalize size fragments. Then the cell composition of each fragment is calculated.
 
 The fragments are clustered using the Louvain Community Detection Algorithm<sup>[3](https://iopscience.iop.org/article/10.1088/1742-5468/2008/10/P10008/meta)</sup>.
 
