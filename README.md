@@ -4,7 +4,7 @@
 
 Buzz is a pipeline that can be used to find different regions of biological interest by cellular composition in Spatial Transcriptome dataset.
 
-For now it only support MERFISH.
+For now it only supports MERFISH.
 
 ## What is MERFISH?
 
