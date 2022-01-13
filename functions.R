@@ -13,7 +13,7 @@ Area_Calculator <- function (xmin, xmax, ymin, ymax, numbers,slide,proportion_th
   #proportion_threshold: the percentage of area needs to be in the fragment for one cell to be assigned to it. Default is 0.25.
   xdelta=(xmax-xmin)/numbers
   ydelta=(ymax-ymin)/numbers
-  slide=slide[slide$x>xmin&slide$x<xmax&slide$y>ymin&slide$y<ymax,]
+  slide=slide[slide$x>=xmin&slide$x<=xmax&slide$y>=ymin&slide$y<=ymax,]
   total.area=data.frame(cell=slide$cell,
                         Area=slide$area,
                         x=slide$x,
@@ -35,7 +35,7 @@ Area_Calculator <- function (xmin, xmax, ymin, ymax, numbers,slide,proportion_th
     ystart=ymin
     while(ystart < ymax) {
       yrange=c(ystart,ystart+ydelta)
-      portion=slide[slide$x>xrange[1]&slide$x<xrange[2]&slide$y>yrange[1]&slide$y<yrange[2],]
+      portion=slide[slide$x>=xrange[1]&slide$x<=xrange[2]&slide$y>=yrange[1]&slide$y<=yrange[2],]
 
       
       
@@ -77,14 +77,23 @@ Area_Calculator <- function (xmin, xmax, ymin, ymax, numbers,slide,proportion_th
 }
 
 Area_Counter <- function (xmin, xmax, ymin, ymax, numbers,cell_coordinates) {
+  #xmin: the minimal boundary of the data slide, use min(slide$x).
+  #xmax: the minimal boundary of the data slide, use max(slide$x).
+  #ymin: the minimal boundary of the data slide, use min(slide$y).
+  #ymax: the minimal boundary of the data slide, use max(slide$y).
+  #numbers: the (numbers)^2 of fragments to generate.
+  #cell_coordinates: a data frame with the following columns:
+  ##x
+  ##y
+  ##cell
+  ##Celltype
+  
+  
+  
   xdelta=(xmax-xmin)/numbers
   ydelta=(ymax-ymin)/numbers
-  slide=slide[slide$x>xmin&slide$x<xmax&slide$y>ymin&slide$y<ymax,]
-  total.area=data.frame(cell=slide$cell,
-                        Area=slide$area,
-                        x=slide$x,
-                        y=slide$y)
-  area=aggregate(Area~cell,data = total.area,FUN = base::sum)
+  cell_coordinates=cell_coordinates[cell_coordinates$x>=(xmin)&cell_coordinates$x<=xmax&cell_coordinates$y>=ymin&cell_coordinates$y<=ymax,]
+
   
   
   
@@ -92,7 +101,7 @@ Area_Counter <- function (xmin, xmax, ymin, ymax, numbers,cell_coordinates) {
   
   xstart=xmin
   results=data.frame(xy='')
-  for (i in unique(slide$Celltype)) {
+  for (i in unique(cell_coordinates$Celltype)) {
     results=cbind(results,data.frame(cellnum=0))
     colnames(results)[ncol(results)]=i
   }
@@ -101,27 +110,16 @@ Area_Counter <- function (xmin, xmax, ymin, ymax, numbers,cell_coordinates) {
     ystart=ymin
     while(ystart < ymax) {
       yrange=c(ystart,ystart+ydelta)
-      portion=slide[slide$x>xrange[1]&slide$x<xrange[2]&slide$y>yrange[1]&slide$y<yrange[2],]
+      portion=cell_coordinates[cell_coordinates$x>=xrange[1]&cell_coordinates$x<=xrange[2]&cell_coordinates$y>=yrange[1]&cell_coordinates$y<=yrange[2],]
       if (nrow(portion)!=0) {
-        portion.total.area=data.frame(cell=portion$cell,
-                                      Area=portion$area,
-                                      x=portion$x,
-                                      y=portion$y)
-        portion.area=aggregate(Area~cell,data = portion.total.area,FUN = base::sum)
-        
-        
-        
         temp=data.frame(xy=paste(c(xrange,yrange),collapse = ','))
-        for (i in unique(slide$Celltype)) {
+        for (i in unique(cell_coordinates$Celltype)) {
           temp=cbind(temp,data.frame(cellnum=0))
           colnames(temp)[ncol(temp)]=i
         }
         for (i in unique(portion$Celltype)) {
           cells=portion[portion$Celltype==i,]
-          prop.stats=portion.area[portion.area$cell%in%cells$cell,]
-          table=merge(prop.stats,area[area$cell%in%prop.stats$cell,],by='cell')
-          table$Freq=(table$Area.x/table$Area.y)
-          sum=length(table$Freq[table$Freq>proportion_threshold])
+          sum=as.numeric(nrow(cells))
           temp[1,i]=sum
         }
         
