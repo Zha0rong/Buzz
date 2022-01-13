@@ -22,7 +22,7 @@ The fragments are clustered using the Louvain Community Detection Algorithm<sup>
 
 The full results of clustering are shown in the html file in the Repository. The figure below shows that the algorithm can adequately capture the differences in cell compositions in different regions of the tissue.
 
-![alt text](https://github.com/Zha0rong/MERFISHer/blob/main/pics/Visualization%20of%20Clustering%20Results-1.png "MERFish figure 2")
+![alt text](https://github.com/Zha0rong/Buzz/blob/main/pics/Visualization%20of%20Clustering%20Results-1.png "MERFish figure 2")
 
 ## How to use it.
 
