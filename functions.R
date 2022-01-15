@@ -133,29 +133,31 @@ Area_Counter <- function (xmin, xmax, ymin, ymax, numbers,cell_coordinates) {
   results=results[-1,]
   rownames(results)=results[,1]
   results=results[,-1]
-  results=results[rowSums(results)>1,]
+  results=results[rowSums(results)>0,]
   return(results)
 }
 Area_Cluster <- function(Area_table,
-                         ScaleFactor=1e6,
-                         Similarity_Threshold=0.5) {
+                         ScaleFactor=1e6,k=20,resolution_parameter=0.1,objective_function='Modularity') {
   require(igraph)
   require(psych)
   require(tidyr)
   require(ggplot2)
   require(reshape2)
-  
+  require(mstknnclust)
   rawtable=Area_table
   Area_table=Area_table/rowSums(Area_table)
   Area_table=Area_table*(ScaleFactor)
   Area_table=log(Area_table+1)
-  correlationmatrix = cor(t(as.matrix(Area_table)))
-  distancematrix <- cor2dist(correlationmatrix)
-  distancematrix <- as.matrix(distancematrix)
-  distancematrix[abs(correlationmatrix) < Similarity_Threshold] = 0
-  Graph <- graph.adjacency(distancematrix, mode = "undirected", weighted = TRUE, diag = TRUE)
-  clusterlouvain <- cluster_louvain(Graph)
+  distance=dist(Area_table)
+  Graph=FindNeighbors(distance,k.param = k,compute.SNN = T,nn.method = 'annoy')
+  
+  Graph.snn=as.matrix(Graph$snn)
+  Graph.snn=graph_from_adjacency_matrix(Graph.snn,mode = 'undirected',weighted = T)
+  #clusterlouvain <- cluster_louvain(Graph.snn)
+  
+  clusterlouvain <- cluster_leiden(Graph.snn,objective_function=objective_function,resolution_parameter=resolution_parameter)
   Clustering.results=data.frame(cluster=clusterlouvain$membership,row.names = clusterlouvain$names)
+  
   Area.Cluster.assignment=merge(Clustering.results,rawtable,by=0)
   rownames(Area.Cluster.assignment)=Area.Cluster.assignment[,1]
   Area.Cluster.assignment=Area.Cluster.assignment[,-1]

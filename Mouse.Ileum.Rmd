@@ -14,8 +14,6 @@ output:
     theme: cerulean
 editor_options: 
   chunk_output_type: console
-params:
-  TF: ''
 ---
 
 
@@ -143,55 +141,46 @@ source('functions.R')
 ```
 
 ```{r Area determination and Calculation}
-Area.50.50=Area_Calculator(min(Spacial.information$x),
+Area_Calculated_from_Probe=Area_Calculator(min(Spacial.information$x),
                                  max(Spacial.information$x),
                                  min(Spacial.information$y),
                                  max(Spacial.information$y),
                                  50,Spacial.information,proportion_threshold = 0.5)
 
+cell_coodinates=data.frame(x=Cell_spacial_information$cell_x,y=Cell_spacial_information$cell_y,cell=Cell_spacial_information$cell,
+                           Celltype=Cell_spacial_information$cell_Celltype)
+Area_Calculated_from_Coordinates=Area_Counter(min(cell_coodinates$x),
+                                 max(cell_coodinates$x),
+                                 min(cell_coodinates$y),
+                                 max(cell_coodinates$y),
+                                 50,cell_coodinates)
 
-
-
-
-reactable(Area.50.50)
 
 
 ```
 
-## Normalization and Scaling
-
-The cell composition of each fragment is scaled by the total number of cells in the fragment. The scaled number is multiplied by 1,000,000 and then log transformed.
-
-Basically it is log transformed CPM normalized. This step is included in the Area_Cluster() function.
-
-```{r Normalization and Scaling}
-
-Area.50.50.normalized=Area.50.50/rowSums(Area.50.50)
-Area.50.50.normalized=Area.50.50.normalized*(1e6)
-Area.50.50.normalized=log(Area.50.50.normalized+1)
-
-reactable(Area.50.50)
-
-```
 
 ## Clustering
 
-In this case I used the Louvain Community Clustering Algorithm from igraph package to cluster the area.
+In this case I used the Leiden Community detection Algorithm from igraph package to cluster the area.
 
 
 ```{r clustering}
 
-clusterlouvain <- Area_Cluster(Area.50.50,ScaleFactor = 1e6,0.5)
+ClusterfromProbe_results <- Area_Cluster(Area_Calculated_from_Probe
+                                         ,ScaleFactor = 1e6,resolution_parameter = 0.5)
+
+ClusterfromCoordinates_results <- Area_Cluster(Area_Calculated_from_Coordinates,ScaleFactor = 1e6,resolution_parameter = 0.5)
 
 ```
 
-## Visualization of Clustering Results
+### Visualization of Clustering Results from Probe
 
-```{r Visualization of Clustering Results, fig.width=20,fig.height=20}
+```{r Visualization of Clustering Results from Probe, fig.width=20,fig.height=20}
 
-Area.Cluster.assignment=clusterlouvain$Area.Cluster.assignment
+Area.Cluster.assignment=ClusterfromProbe_results$Area.Cluster.assignment
 
-Clustering.Distribution=clusterlouvain$Clustering.Distribution
+Clustering.Distribution=ClusterfromProbe_results$Clustering.Distribution
 
 melt=Area.Cluster.assignment
 melt$cluster=as.factor(melt$cluster)
@@ -211,86 +200,57 @@ centroid.graph=ggplot(Cell_spacial_information,aes(x=cell_x,y=cell_y,colour=cell
     #legend.position = c(0.6, 0.07),
     #legend.direction = "horizontal",
 )
-Clustering.Distribution.plot=clusterlouvain$Clustering.Distribution.plot
+Clustering.Distribution.plot=ClusterfromProbe_results$Clustering.Distribution.plot
 
 grid.arrange(Clustering.Distribution.plot, centroid.graph,Cluster_cell_composition, ncol=2)
 
-```
+Clustering.Distribution.plot
 
-## Explore the Transcriptome Based on the Area Clustering Results
+centroid.graph
 
-The Clustering algorithm separate the image into 5 clusters.
-
-Cluster 1 and 2 are the center/inside of the tissue, which is rich in immune cells
-
-Cluster 4 is the muscle lining of the Ileum.
-
-Cluster 3 and 5 are the outside lining of the Villi. Cluster 5 is the tip of the villus which is rich in Top Villus Enterocytes. while Cluster 3 is rich in Mid Villus and Bottom Villus Enterocytes.
-
-
-So in this case I would love to compare the difference between the gene expression profile of Enterocytes (Mid Villus) in Area clusters 4 and the gene expression profile of Enterocytes (Mid Villus) in other Area clusters.
-
-```{r Assign Cells to Area Clusters}
-
-
-Cell_spacial_information$Area_Cluster=''
-
-for (i in 1:nrow(Cell_spacial_information)) {
-  start=1
-  stop=0
-  while(start<=nrow(Clustering.Distribution)&stop==0) {
-    if (Cell_spacial_information$cell_x[i]>Clustering.Distribution$xmin[start]&
-        Cell_spacial_information$cell_x[i]<Clustering.Distribution$xmax[start]&
-        Cell_spacial_information$cell_y[i]>Clustering.Distribution$ymin[start]&
-        Cell_spacial_information$cell_y[i]<Clustering.Distribution$ymax[start]) {
-      Cell_spacial_information$Area_Cluster[i]=Clustering.Distribution$cluster[start]
-      stop=1
-    }
-    else {
-      start=start+1
-    }
-  }
-  rm(i)
-}
-write.table(Cell_spacial_information,'Cell_spacial_information.tsv',quote = F,sep = '\t',row.names = F)
-
-reactable(Cell_spacial_information)
-
-metadata=Cell_spacial_information
-# Remove the cells that are not in the any Area cluster.
-metadata=metadata[metadata$Area_Cluster!='',]
-
-rownames(metadata)=metadata$cell
-Counts=read.table('MERFISH/data_release_baysor_merfish_gut/data_analysis/baysor_membrane_prior/segmentation/segmentation_counts.tsv',header = F,row.names = 1,check.names = F)
-colnames(Counts)=seq(1,ncol(Counts))
-Counts=Counts[,rownames(metadata)]
-Seurat_Object=CreateSeuratObject(Counts,meta.data = metadata)
-
-
-
-Enterocyte=subset(Seurat_Object,subset=cell_Celltype%in%c('Enterocyte (Mid Villus)','Enterocyte (Bottom Villus)',
-                                                          'Enterocyte (Top Villus)'))
-Enterocyte=NormalizeData(Enterocyte)
-Idents(Enterocyte)='Area_Cluster'
-reactable(data.frame(table(Enterocyte$Area_Cluster)))
-Enterocyte.Area.markers=FindAllMarkers(Enterocyte,test.use = 'MAST',only.pos = T)
-
-reactable(Enterocyte.Area.markers)
+Cluster_cell_composition
 
 ```
 
-The results show that the Apob and Slc51a are significantly upregulated in the Enterocyte in the outer linings of the villi, while gene Stmn1 is significantly downregulated.
 
-Gene Introduction:
+### Visualization of Clustering Results from Coordinates
 
-https://www.genecards.org/cgi-bin/carddisp.pl?gene=APOB
+```{r Visualization of Clustering Results from Coordinates, fig.width=20,fig.height=20}
 
-https://www.genecards.org/cgi-bin/carddisp.pl?gene=SLC51A&keywords=Slc51a
+Area.Cluster.assignment=ClusterfromCoordinates_results$Area.Cluster.assignment
 
-https://www.genecards.org/cgi-bin/carddisp.pl?gene=STMN1&keywords=Stmn1
+Clustering.Distribution=ClusterfromCoordinates_results$Clustering.Distribution
+
+melt=Area.Cluster.assignment
+melt$cluster=as.factor(melt$cluster)
+melt=melt(melt,id.vars='cluster')
+colnames(melt)=c('Cluster','CellType','Cells')
+Cluster_cell_composition=ggplot(melt,aes(x=Cells,y=Cluster,fill=CellType))+geom_bar(stat = 'identity',position = 'fill')+ scale_fill_manual(values = color)+ theme_bw()
+
+centroid.graph=ggplot(Cell_spacial_information,aes(x=cell_x,y=cell_y,colour=cell_Celltype))+geom_point()+
+  xlim(min(Cell_spacial_information$cell_x),max(Cell_spacial_information$cell_x))+
+  ylim(min(Cell_spacial_information$cell_y),max(Cell_spacial_information$cell_y)) + scale_color_manual(values = color)+ theme_bw() +xlab('x') +ylab('y') +
+  theme(legend.position = "none",
+    # get rid of panel grids
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # Change plot and panel background
+    # Change legend 
+    #legend.position = c(0.6, 0.07),
+    #legend.direction = "horizontal",
+)
+Clustering.Distribution.plot=ClusterfromCoordinates_results$Clustering.Distribution.plot
+
+grid.arrange(Clustering.Distribution.plot, centroid.graph,Cluster_cell_composition, ncol=2)
 
 
+Clustering.Distribution.plot
 
+centroid.graph
+
+Cluster_cell_composition
+
+```
 
 
 # Conclusion
