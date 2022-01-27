@@ -144,6 +144,7 @@ Area_Cluster <- function(Area_table,
   require(ggplot2)
   require(reshape2)
   require(mstknnclust)
+  require(Seurat)
   rawtable=Area_table
   Area_table=Area_table/rowSums(Area_table)
   Area_table=Area_table*(ScaleFactor)
@@ -153,8 +154,7 @@ Area_Cluster <- function(Area_table,
   
   Graph.snn=as.matrix(Graph$snn)
   Graph.snn=graph_from_adjacency_matrix(Graph.snn,mode = 'undirected',weighted = T)
-  #clusterlouvain <- cluster_louvain(Graph.snn)
-  
+
   clusterlouvain <- cluster_leiden(Graph.snn,objective_function=objective_function,resolution_parameter=resolution_parameter)
   Clustering.results=data.frame(cluster=clusterlouvain$membership,row.names = clusterlouvain$names)
   
@@ -195,7 +195,7 @@ Area_Cluster <- function(Area_table,
   return(list(Area.Cluster.assignment=Area.Cluster.assignment,
               Clustering.Distribution=Clustering.Distribution,
               Clustering.Distribution.plot=Clustering.Distribution.plot,
-              Cluster_cell_composition=Cluster_cell_composition))
+              Cluster_cell_composition=Cluster_cell_composition,Graph.snn=Graph.snn))
   
 }
 
